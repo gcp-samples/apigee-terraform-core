@@ -35,12 +35,22 @@ output "lb_type" {
 }
 
 output "lb_ip_address" {
-  description = "The IP address reserved for the load balancer frontend (internal for ILB, external for XLB, null if none)."
+  description = "The IP address reserved for the load balancer frontend (internal for ILB, external for XLB, null if none). Point your domain's DNS A record to this IP."
   value       = try(google_compute_address.apigee_lb_ip[0].address, null)
 }
 
+output "dns_a_record" {
+  description = "DNS A record required to route domain traffic to the load balancer IP (null if lb_type is none). Both this A record and dns_authorization_record (CNAME) must be added in DNS."
+  value = local.create_lb ? {
+    name = "${trimsuffix(var.domain, ".")}."
+    type = "A"
+    data = google_compute_address.apigee_lb_ip[0].address
+    note = "REQUIRED: Add BOTH this A record (routes traffic to LB) and the dns_authorization_record CNAME below (validates TLS cert) in your DNS provider."
+  } : null
+}
+
 output "dns_authorization_record" {
-  description = "DNS resource record information for completing the Certificate Manager authorization challenge (null if lb_type is none)."
+  description = "DNS CNAME record required for the Certificate Manager TLS authorization challenge (null if lb_type is none). Both this CNAME record and dns_a_record (A) must be added in DNS."
   value       = try(google_certificate_manager_dns_authorization.apigee_dns_auth[0].dns_resource_record, null)
 }
 

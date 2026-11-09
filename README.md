@@ -198,16 +198,25 @@ terraform -chdir=tf/03-all-in-one apply \
 
 ## Post-Deployment: HTTPS & DNS Setup
 
-When `lb_type` is `xlb` or `ilb`, retrieve your load balancer IP and Certificate Manager DNS challenge record:
+> [!IMPORTANT]
+> When `lb_type` is `xlb` or `ilb`, **both** DNS records (**A** and **CNAME**) must be added to your DNS provider:
+> 1. **A Record (`dns_a_record`)**: Routes client HTTPS traffic for your `domain` to the Load Balancer IP (`lb_ip_address`).
+> 2. **CNAME Record (`dns_authorization_record`)**: Validates domain ownership so Certificate Manager can issue and auto-renew the managed TLS certificate.
+
+Retrieve both records from Terraform outputs:
 
 ```sh
 # Use tf/03-all-in-one or tf/02-runtime depending on how you deployed
-terraform -chdir=tf/03-all-in-one output lb_ip_address
+terraform -chdir=tf/03-all-in-one output dns_a_record
 terraform -chdir=tf/03-all-in-one output dns_authorization_record
 ```
 
-1. Create an **A record** pointing your `domain` to `lb_ip_address`.
-2. Create the **CNAME record** shown in `dns_authorization_record` so Certificate Manager can issue and auto-renew the managed TLS certificate.
+To test your Apigee proxy immediately before the DNS `A` record propagates:
+
+```sh
+LB_IP=$(terraform -chdir=tf/03-all-in-one output -raw lb_ip_address)
+curl -v --resolve api.example.com:443:$LB_IP https://api.example.com/your-proxy-path
+```
 
 ---
 
