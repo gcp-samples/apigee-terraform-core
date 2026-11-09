@@ -14,6 +14,17 @@ variable "drz_location" {
   default     = null
 }
 
+variable "billing_type" {
+  description = "The Apigee billing type of the organization: 'PAYG' (default), 'TRIAL' (or 'EVALUATION', only valid for global), or 'SUBSCRIPTION'. Environment type is only set when billing_type is 'PAYG'."
+  type        = string
+  default     = "PAYG"
+
+  validation {
+    condition     = contains(["PAYG", "TRIAL", "EVALUATION", "SUBSCRIPTION"], upper(var.billing_type))
+    error_message = "Allowed values for billing_type are 'PAYG', 'TRIAL', 'EVALUATION', or 'SUBSCRIPTION'."
+  }
+}
+
 variable "lb_type" {
   description = "Load balancer type to deploy: 'none', 'ilb' (Regional Internal ALB), or 'xlb' (Regional External ALB)."
   type        = string

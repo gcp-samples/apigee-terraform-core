@@ -103,7 +103,7 @@ resource "google_apigee_environment" "dev_env" {
   org_id       = google_apigee_organization.apigee_org.id
   display_name = "Development Environment"
   description  = "Development environment for API proxy deployments"
-  type         = "COMPREHENSIVE"
+  type         = local.billing_type == "PAYG" ? "COMPREHENSIVE" : null
 }
 
 resource "google_apigee_envgroup" "dev_envgroup" {
@@ -181,10 +181,14 @@ resource "google_compute_region_backend_service" "apigee_lb_backend" {
 
 resource "google_compute_region_url_map" "apigee_lb_url_map" {
   count           = local.create_lb ? 1 : 0
-  name            = "apigee-${var.lb_type}-url-map-${var.region}"
+  name            = "apigee-${var.lb_type}-${var.region}"
   region          = var.region
   project         = var.project_id
   default_service = google_compute_region_backend_service.apigee_lb_backend[0].id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_region_target_https_proxy" "apigee_lb_target_proxy" {
@@ -206,6 +210,7 @@ resource "google_compute_address" "apigee_lb_ip" {
   project      = var.project_id
   address_type = local.is_ilb ? "INTERNAL" : "EXTERNAL"
   subnetwork   = local.is_ilb ? local.subnet : null
+  depends_on   = [google_project_service.enabled_apis]
 }
 
 resource "google_compute_forwarding_rule" "apigee_lb_forwarding_rule" {

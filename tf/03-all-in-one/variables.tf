@@ -15,7 +15,7 @@ variable "drz_location" {
 }
 
 variable "billing_type" {
-  description = "The Apigee billing type: 'PAYG' (default), 'TRIAL' (or 'EVALUATION', only valid for global), or 'SUBSCRIPTION'."
+  description = "The Apigee billing type: 'PAYG' (default), 'TRIAL' (or 'EVALUATION', only valid for global), or 'SUBSCRIPTION'. Environment type is only set when billing_type is 'PAYG'."
   type        = string
   default     = "PAYG"
 

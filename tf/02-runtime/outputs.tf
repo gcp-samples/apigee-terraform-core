@@ -38,6 +38,11 @@ output "drz_location" {
   value       = var.drz_location
 }
 
+output "billing_type" {
+  description = "Apigee billing type."
+  value       = local.billing_type
+}
+
 output "apigee_custom_endpoint" {
   description = "The Apigee API endpoint used."
   value       = local.apigee_endpoint

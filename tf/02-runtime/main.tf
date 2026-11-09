@@ -7,6 +7,7 @@ locals {
   network         = var.create_network ? try(google_compute_network.lb_network[0].id, null) : var.network
   subnet          = var.create_network ? try(google_compute_subnetwork.lb_subnet[0].id, null) : var.subnet
   is_drz          = var.drz_location != null && var.drz_location != "" && lower(var.drz_location) != "global"
+  billing_type    = upper(var.billing_type) == "TRIAL" ? "EVALUATION" : upper(var.billing_type)
   apigee_endpoint = local.is_drz ? "https://${lower(var.drz_location)}-apigee.googleapis.com/v1/" : "https://apigee.googleapis.com/v1/"
 }
 
@@ -59,7 +60,14 @@ resource "google_apigee_environment" "dev_env" {
   org_id       = local.org_id
   display_name = "Development Environment"
   description  = "Development environment for API proxy deployments"
-  type         = "COMPREHENSIVE"
+  type         = local.billing_type == "PAYG" ? "COMPREHENSIVE" : null
+
+  lifecycle {
+    precondition {
+      condition     = !(local.is_drz && (upper(var.billing_type) == "TRIAL" || upper(var.billing_type) == "EVALUATION"))
+      error_message = "Apigee TRIAL/EVALUATION billing type cannot be used when a DRZ location (drz_location) is specified. Please use PAYG or SUBSCRIPTION instead."
+    }
+  }
 }
 
 resource "google_apigee_envgroup" "dev_envgroup" {
@@ -136,10 +144,14 @@ resource "google_compute_region_backend_service" "apigee_lb_backend" {
 
 resource "google_compute_region_url_map" "apigee_lb_url_map" {
   count           = local.create_lb ? 1 : 0
-  name            = "apigee-${var.lb_type}-url-map-${var.region}"
+  name            = "apigee-${var.lb_type}-${var.region}"
   region          = var.region
   project         = var.project_id
   default_service = google_compute_region_backend_service.apigee_lb_backend[0].id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_region_target_https_proxy" "apigee_lb_target_proxy" {
